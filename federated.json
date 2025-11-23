@@ -1,0 +1,9 @@
+{
+  "name": "github-oidc-keyvault-dojo",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:jgonzaloDev/Key_Vault_Dojo:ref:refs/heads/main",
+  "description": "OIDC federated credential for GitHub Actions",
+  "audiences": [
+    "api://AzureADTokenExchange"
+  ]
+}
