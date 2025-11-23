@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      id-token: write
+      id-token: write        # OBLIGATORIO para OIDC
       contents: read
 
     steps:
@@ -21,9 +21,10 @@ jobs:
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}          # DEBE SER > b3972cdd...
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          allow-no-subscriptions: true                      # <-- AGREGA ESTO
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
