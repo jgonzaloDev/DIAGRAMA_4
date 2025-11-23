@@ -1,0 +1,9 @@
+{
+  "name": "github-actions-apply-main",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:jgonzaloDev/Key_Vault_Dojo:workflow:apply.yaml@refs/heads/main",
+  "description": "OIDC federated credential for GitHub Actions (apply.yaml on main branch)",
+  "audiences": [
+    "api://AzureADTokenExchange"
+  ]
+}
