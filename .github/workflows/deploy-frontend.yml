@@ -1,0 +1,143 @@
+name: Deploy Frontend (React) to Azure App Service
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout Frontend Repository
+        uses: actions/checkout@v4
+        with:
+          repository: jgonzaloDev/FRONT_REAC_DOJO
+          token: ${{ secrets.GH_PERSONAL_TOKEN }}
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Create .env file
+        run: |
+          echo "REACT_APP_API_URL=https://${{ secrets.TF_VAR_APP_SERVICE_NAME }}.azurewebsites.net" > .env
+          echo "REACT_APP_ENVIRONMENT=production" >> .env
+          echo "✅ Variables de entorno configuradas"
+          cat .env
+
+      - name: Install dependencies
+        run: |
+          echo "📦 Instalando dependencias..."
+          npm install --legacy-peer-deps || npm install
+          echo "✅ Dependencias instaladas"
+
+      - name: Build React app
+        run: |
+          echo "🔨 Compilando aplicación React..."
+          CI=false npm run build
+          echo "✅ Build completado"
+          ls -lh build/ || ls -lh dist/
+
+      - name: Create Production package.json
+        run: |
+          if [ -d "build" ]; then
+            BUILD_DIR="build"
+          elif [ -d "dist" ]; then
+            BUILD_DIR="dist"
+          else
+            echo "❌ No se encontró directorio build o dist"
+            exit 1
+          fi
+          
+          echo '{
+            "name": "react-app-production",
+            "version": "1.0.0",
+            "scripts": {
+              "start": "npx serve -s . -l 8080"
+            },
+            "dependencies": {
+              "serve": "^14.2.0"
+            }
+          }' > "$BUILD_DIR/package.json"
+          
+          echo "✅ package.json de producción creado"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-app
+          path: |
+            build
+            dist
+          if-no-files-found: error
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: react-app
+          path: app-build
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Detect build directory
+        id: detect
+        run: |
+          if [ -d "app-build/build" ]; then
+            echo "BUILD_PATH=app-build/build" >> $GITHUB_OUTPUT
+            echo "✅ Usando directorio: build"
+          elif [ -d "app-build/dist" ]; then
+            echo "BUILD_PATH=app-build/dist" >> $GITHUB_OUTPUT
+            echo "✅ Usando directorio: dist"
+          else
+            echo "❌ No se encontró directorio build ni dist"
+            exit 1
+          fi
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.TF_VAR_APP_SERVICE_NAME_WEB }}
+          slot-name: 'Production'
+          package: ${{ steps.detect.outputs.BUILD_PATH }}
+
+      - name: Verify Deployment
+        run: |
+          echo "🔍 Verificando deployment..."
+          APP_URL="https://${{ secrets.TF_VAR_APP_SERVICE_NAME_WEB }}.azurewebsites.net"
+          echo "📍 URL de la aplicación: $APP_URL"
+          echo "⏳ Esperando 20 segundos para que la app inicie..."
+          sleep 20
+          if curl -f -s "$APP_URL" > /dev/null 2>&1; then
+            echo "✅ Frontend desplegado exitosamente y respondiendo"
+          else
+            echo "⚠️  Frontend desplegado pero no responde aún (puede tardar unos minutos)"
+          fi
+
+      - name: Azure Logout
+        if: always()
+        run: az logout || true
