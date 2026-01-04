@@ -338,7 +338,7 @@ resource "azurerm_linux_web_app" "backend" {
     # CORS para permitir que el frontend acceda al backend
     cors {
       allowed_origins = [
-        "https://${var.app_service_name_web}.azurewebsites.net",
+        "https://${var.webapp_frontend_name}.azurewebsites.net",
         "http://localhost:3000"
       ]
       support_credentials = true
