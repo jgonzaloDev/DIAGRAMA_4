@@ -31,7 +31,7 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo "REACT_APP_API_URL=https://${{ secrets.TF_VAR_APP_SERVICE_NAME }}.azurewebsites.net" > .env
+          echo "REACT_APP_API_URL=https://${{ secrets.TF_VAR_WEBAPP_FRONTEND_NAME }}.azurewebsites.net" > .env
           echo "REACT_APP_ENVIRONMENT=production" >> .env
           echo "✅ Variables de entorno configuradas"
           cat .env
@@ -121,14 +121,14 @@ jobs:
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: ${{ secrets.TF_VAR_APP_SERVICE_NAME_WEB }}
+          app-name: ${{ secrets.TF_VAR_WEBAPP_FRONTEND_NAME }}
           slot-name: 'Production'
           package: ${{ steps.detect.outputs.BUILD_PATH }}
 
       - name: Verify Deployment
         run: |
           echo "🔍 Verificando deployment..."
-          APP_URL="https://${{ secrets.TF_VAR_APP_SERVICE_NAME_WEB }}.azurewebsites.net"
+          APP_URL="https://${{ secrets.TF_VAR_WEBAPP_FRONTEND_NAME }}.azurewebsites.net"
           echo "📍 URL de la aplicación: $APP_URL"
           echo "⏳ Esperando 20 segundos para que la app inicie..."
           sleep 20
