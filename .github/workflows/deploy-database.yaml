@@ -182,7 +182,7 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
       - name: Execute Database Seeds
-        if: github.ref != 'refs/heads/main'
+        if: github.ref != 'refs/heads/main' || github.event_name == 'workflow_dispatch'
         env:
           SQL_SERVER: ${{ steps.sql-config.outputs.SQL_SERVER }}
           DB_NAME: ${{ steps.sql-config.outputs.DB_NAME }}
