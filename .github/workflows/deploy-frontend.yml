@@ -31,7 +31,7 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo "REACT_APP_API_URL=https://${{ secrets.TF_VAR_WEBAPP_FRONTEND_NAME }}.azurewebsites.net" > .env
+          echo "REACT_APP_API_URL=https://${{ secrets.TF_VAR_WEBAPP_BACKEND_NAME }}.azurewebsites.net" > .env
           echo "REACT_APP_ENVIRONMENT=production" >> .env
           echo "✅ Variables de entorno configuradas"
           cat .env
