@@ -111,80 +111,7 @@ runcmd:
   - mkdir -p /home/${admin_username}/otel-stack/otel-collector-config
   - mkdir -p /home/${admin_username}/otel-stack/elasticsearch-data
   - mkdir -p /home/${admin_username}/otel-stack/kibana-data
-  # ============================================
-  # Crear docker-compose.yaml para Elastic Stack
-  # ============================================
-  - |
-    cat > /home/${admin_username}/otel-stack/docker-compose-elastic.yaml <<'EOF'
-    version: "3.8"
-    services:
-      elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-        container_name: elasticsearch
-        environment:
-          - discovery.type=single-node
-          - xpack.security.enabled=false
-          - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
-        volumes:
-          - ./elasticsearch-data:/usr/share/elasticsearch/data
-        ports:
-          - "9200:9200"
-          - "9300:9300"
-        networks:
-          - otel-network
-        restart: unless-stopped
-        healthcheck:
-          test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
-          interval: 30s
-          timeout: 10s
-          retries: 5
-
-      apm-server:
-        image: docker.elastic.co/apm/apm-server:8.11.0
-        container_name: apm-server
-        environment:
-          - output.elasticsearch.hosts=["http://elasticsearch:9200"]
-          - apm-server.host=0.0.0.0:8200
-          - apm-server.auth.anonymous.enabled=true
-          - apm-server.rum.enabled=true
-          - setup.kibana.host=http://kibana:5601
-          - setup.template.enabled=true
-          - logging.to_files=false
-        ports:
-          - "8200:8200"
-        networks:
-          - otel-network
-        depends_on:
-          elasticsearch:
-            condition: service_healthy
-        restart: unless-stopped
-        healthcheck:
-          test: ["CMD-SHELL", "curl -f http://localhost:8200/ || exit 1"]
-          interval: 30s
-          timeout: 10s
-          retries: 5
-
-      kibana:
-        image: docker.elastic.co/kibana/kibana:8.11.0
-        container_name: kibana
-        environment:
-          - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-          - xpack.apm.enabled=true
-          - xpack.apm.ui.enabled=true
-        ports:
-          - "5601:5601"
-        networks:
-          - otel-network
-        depends_on:
-          apm-server:
-            condition: service_healthy
-        restart: unless-stopped
-
-    networks:
-      otel-network:
-        name: otel-stack_otel-network
-        external: true
-    EOF
+  
   # ============================================
   # Crear configuración de OTel Collector
   # ============================================
@@ -247,12 +174,86 @@ runcmd:
             - elasticsearch
             - debug
     EOF
+  
+  # ============================================
+  # Crear docker-compose.yaml para Elastic Stack
+  # ============================================
+  - |
+    cat > /home/${admin_username}/otel-stack/docker-compose-elastic.yaml <<'EOF'
+    services:
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+        container_name: elasticsearch
+        environment:
+          - discovery.type=single-node
+          - xpack.security.enabled=false
+          - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+        volumes:
+          - ./elasticsearch-data:/usr/share/elasticsearch/data
+        ports:
+          - "9200:9200"
+          - "9300:9300"
+        networks:
+          - otel-network
+        restart: unless-stopped
+        healthcheck:
+          test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+          interval: 30s
+          timeout: 10s
+          retries: 5
+
+      apm-server:
+        image: docker.elastic.co/apm/apm-server:8.11.0
+        container_name: apm-server
+        environment:
+          - output.elasticsearch.hosts=["http://elasticsearch:9200"]
+          - apm-server.host=0.0.0.0:8200
+          - apm-server.auth.anonymous.enabled=true
+          - apm-server.rum.enabled=true
+          - setup.kibana.host=http://kibana:5601
+          - setup.template.enabled=true
+          - logging.to_files=false
+        ports:
+          - "8200:8200"
+        networks:
+          - otel-network
+        depends_on:
+          elasticsearch:
+            condition: service_healthy
+        restart: unless-stopped
+        healthcheck:
+          test: ["CMD-SHELL", "curl -f http://localhost:8200/ || exit 1"]
+          interval: 30s
+          timeout: 10s
+          retries: 5
+
+      kibana:
+        image: docker.elastic.co/kibana/kibana:8.11.0
+        container_name: kibana
+        environment:
+          - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+          - xpack.apm.enabled=true
+          - xpack.apm.ui.enabled=true
+          - SERVER_PUBLICBASEURL=http://localhost:5601
+        ports:
+          - "5601:5601"
+        networks:
+          - otel-network
+        depends_on:
+          apm-server:
+            condition: service_healthy
+        restart: unless-stopped
+
+    networks:
+      otel-network:
+        driver: bridge
+    EOF
+  
   # ============================================
   # Crear docker-compose.yaml para OTel Collector
   # ============================================
   - |
     cat > /home/${admin_username}/otel-stack/docker-compose-collector.yaml <<'EOF'
-    version: "3.8"
     services:
       otel-collector:
         image: otel/opentelemetry-collector-contrib:latest
@@ -266,33 +267,63 @@ runcmd:
         networks:
           - otel-network
         restart: unless-stopped
+
     networks:
       otel-network:
-        name: otel-stack_otel-network
         external: true
+        name: otel-stack_otel-network
     EOF
+  
   # ============================================
   # Crear script de inicio
   # ============================================
   - |
     cat > /home/${admin_username}/otel-stack/start-all.sh <<'EOF'
     #!/bin/bash
+
     echo "🚀 Iniciando stack de observabilidad..."
-    
-    # Iniciar Elasticsearch, APM Server y Kibana
+    echo ""
+
+    # Verificar si Docker está corriendo
+    if ! docker info > /dev/null 2>&1; then
+        echo "❌ Docker no está corriendo. Iniciando Docker..."
+        sudo systemctl start docker
+        sleep 5
+    fi
+
+    # Crear la red si no existe
+    echo "🌐 Verificando red Docker..."
+    if ! docker network inspect otel-stack_otel-network > /dev/null 2>&1; then
+        echo "   Creando red otel-stack_otel-network..."
+        docker network create otel-stack_otel-network
+    else
+        echo "   Red ya existe ✅"
+    fi
+
+    echo ""
     echo "📊 Iniciando Elasticsearch, APM Server y Kibana..."
     docker compose -f docker-compose-elastic.yaml up -d
-    
-    # Esperar a que estén listos
-    echo "⏳ Esperando 45 segundos a que Elasticsearch y APM Server estén listos..."
-    sleep 45
-    
-    # Iniciar OTel Collector
+
+    echo ""
+    echo "⏳ Esperando 60 segundos a que Elasticsearch esté completamente listo..."
+    sleep 60
+
+    echo ""
+    echo "✅ Verificando estado de Elasticsearch..."
+    curl -s http://localhost:9200/_cluster/health | grep -o '"status":"[^"]*"' || echo "   Elasticsearch aún iniciando..."
+
+    echo ""
     echo "📡 Iniciando OTel Collector..."
     docker compose -f docker-compose-collector.yaml up -d
-    
+
     echo ""
+    echo "⏳ Esperando 10 segundos..."
+    sleep 10
+
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "✅ Stack iniciado correctamente!"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo "📊 Servicios disponibles:"
     echo "  • OTel Collector (gRPC): 4317"
@@ -304,9 +335,13 @@ runcmd:
     echo "🌐 Acceso web:"
     echo "  • Kibana: http://localhost:5601"
     echo ""
-    echo "🔍 Ver logs:"
+    echo "🔍 Ver estado de contenedores:"
+    echo "  docker ps"
+    echo ""
+    echo "📋 Ver logs:"
     echo "  docker compose -f docker-compose-elastic.yaml logs -f"
     echo "  docker compose -f docker-compose-collector.yaml logs -f"
+    echo ""
     EOF
   
   - chmod +x /home/${admin_username}/otel-stack/start-all.sh
@@ -317,10 +352,24 @@ runcmd:
   - |
     cat > /home/${admin_username}/otel-stack/stop-all.sh <<'EOF'
     #!/bin/bash
+
     echo "🛑 Deteniendo stack de observabilidad..."
+    echo ""
+
+    # Detener OTel Collector primero
+    echo "📡 Deteniendo OTel Collector..."
     docker compose -f docker-compose-collector.yaml down
+
+    echo ""
+    echo "📊 Deteniendo Elasticsearch, APM Server y Kibana..."
     docker compose -f docker-compose-elastic.yaml down
+
+    echo ""
     echo "✅ Stack detenido"
+    echo ""
+    echo "💡 Nota: La red 'otel-stack_otel-network' se mantiene para próximos inicios"
+    echo "   Para eliminarla también: docker network rm otel-stack_otel-network"
+    echo ""
     EOF
   
   - chmod +x /home/${admin_username}/otel-stack/stop-all.sh
@@ -345,6 +394,24 @@ runcmd:
     EOF
   
   - chmod +x /home/${admin_username}/otel-stack/status.sh
+  
+  # ============================================
+  # Crear script de limpieza completa
+  # ============================================
+  - |
+    cat > /home/${admin_username}/otel-stack/cleanup.sh <<'EOF'
+    #!/bin/bash
+    echo "🧹 Limpieza completa del stack..."
+    docker compose -f docker-compose-collector.yaml down 2>/dev/null || true
+    docker compose -f docker-compose-elastic.yaml down 2>/dev/null || true
+    docker rm -f otel-collector elasticsearch apm-server kibana 2>/dev/null || true
+    docker network rm otel-stack_otel-network 2>/dev/null || true
+    docker container prune -f
+    docker network prune -f
+    echo "✅ Limpieza completada"
+    EOF
+  
+  - chmod +x /home/${admin_username}/otel-stack/cleanup.sh
   
   # ============================================
   # Crear accesos directos en el escritorio
@@ -433,6 +500,7 @@ runcmd:
        ./start-all.sh   - Iniciar stack completo
        ./stop-all.sh    - Detener stack
        ./status.sh      - Ver estado actual
+       ./cleanup.sh     - Limpieza completa
     
     📊 SERVICIOS:
        • OTel Collector gRPC: 4317
