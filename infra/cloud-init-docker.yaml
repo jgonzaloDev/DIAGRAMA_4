@@ -111,94 +111,6 @@ runcmd:
   - mkdir -p /home/${admin_username}/otel-stack/otel-collector-config
   - mkdir -p /home/${admin_username}/otel-stack/elasticsearch-data
   - mkdir -p /home/${admin_username}/otel-stack/kibana-data
-  
-  # ============================================
-  # Crear configuración de OTel Collector
-  # ============================================
-  - |
-    cat > /home/${admin_username}/otel-stack/otel-collector-config/otel-collector-config.yaml <<'EOF'
-    receivers:
-      otlp:
-        protocols:
-          grpc:
-            endpoint: 0.0.0.0:4317
-          http:
-            endpoint: 0.0.0.0:4318
-
-    processors:
-      batch:
-        timeout: 10s
-        send_batch_size: 1024
-
-    exporters:
-      otlphttp/apm:
-        endpoint: http://apm-server:8200
-        tls:
-          insecure: true
-      elasticsearch:
-        endpoints:
-          - http://elasticsearch:9200
-        traces_index: otel-traces
-        logs_index: otel-logs
-        metrics_index: otel-metrics
-        tls:
-          insecure: true
-      debug:
-        verbosity: detailed
-
-    service:
-      pipelines:
-        traces:
-          receivers:
-            - otlp
-          processors:
-            - batch
-          exporters:
-            - otlphttp/apm
-            - elasticsearch
-            - debug
-        metrics:
-          receivers:
-            - otlp
-          processors:
-            - batch
-          exporters:
-            - elasticsearch
-            - debug
-        logs:
-          receivers:
-            - otlp
-          processors:
-            - batch
-          exporters:
-            - elasticsearch
-            - debug
-    EOF
-  
-  # ============================================
-  # Crear docker-compose.yaml para OTel Collector
-  # ============================================
-  - |
-    cat > /home/${admin_username}/otel-stack/docker-compose-collector.yaml <<'EOF'
-    version: "3.8"
-    services:
-      otel-collector:
-        image: otel/opentelemetry-collector-contrib:latest
-        container_name: otel-collector
-        command: ["--config=/etc/otelcol/config.yaml"]
-        volumes:
-          - ./otel-collector-config/otel-collector-config.yaml:/etc/otelcol/config.yaml
-        ports:
-          - "4317:4317"
-          - "4318:4318"
-        networks:
-          - otel-network
-        restart: unless-stopped
-    networks:
-      otel-network:
-        driver: bridge
-    EOF
-  
   # ============================================
   # Crear docker-compose.yaml para Elastic Stack
   # ============================================
@@ -270,9 +182,95 @@ runcmd:
 
     networks:
       otel-network:
-        driver: bridge
+        name: otel-stack_otel-network
+        external: true
     EOF
-  
+  # ============================================
+  # Crear configuración de OTel Collector
+  # ============================================
+  - |
+    cat > /home/${admin_username}/otel-stack/otel-collector-config/otel-collector-config.yaml <<'EOF'
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      batch:
+        timeout: 10s
+        send_batch_size: 1024
+
+    exporters:
+      otlphttp/apm:
+        endpoint: http://apm-server:8200
+        tls:
+          insecure: true
+      elasticsearch:
+        endpoints:
+          - http://elasticsearch:9200
+        traces_index: otel-traces
+        logs_index: otel-logs
+        metrics_index: otel-metrics
+        tls:
+          insecure: true
+      debug:
+        verbosity: detailed
+
+    service:
+      pipelines:
+        traces:
+          receivers:
+            - otlp
+          processors:
+            - batch
+          exporters:
+            - otlphttp/apm
+            - elasticsearch
+            - debug
+        metrics:
+          receivers:
+            - otlp
+          processors:
+            - batch
+          exporters:
+            - elasticsearch
+            - debug
+        logs:
+          receivers:
+            - otlp
+          processors:
+            - batch
+          exporters:
+            - elasticsearch
+            - debug
+    EOF
+  # ============================================
+  # Crear docker-compose.yaml para OTel Collector
+  # ============================================
+  - |
+    cat > /home/${admin_username}/otel-stack/docker-compose-collector.yaml <<'EOF'
+    version: "3.8"
+    services:
+      otel-collector:
+        image: otel/opentelemetry-collector-contrib:latest
+        container_name: otel-collector
+        command: ["--config=/etc/otelcol/config.yaml"]
+        volumes:
+          - ./otel-collector-config/otel-collector-config.yaml:/etc/otelcol/config.yaml
+        ports:
+          - "4317:4317"
+          - "4318:4318"
+        networks:
+          - otel-network
+        restart: unless-stopped
+    networks:
+      otel-network:
+        name: otel-stack_otel-network
+        external: true
+    EOF
   # ============================================
   # Crear script de inicio
   # ============================================
