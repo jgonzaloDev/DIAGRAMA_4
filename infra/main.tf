@@ -298,13 +298,16 @@ resource "azurerm_linux_web_app" "frontend" {
     always_on = true
 
     application_stack {
-      node_version = "18-lts"
+      node_version = "22-lts"
     }
   }
 
   app_settings = {
     "WEBSITE_NODE_DEFAULT_VERSION" = "22-lts"
     "BACKEND_URL"                  = "https://${var.webapp_backend_name}.azurewebsites.net"
+    "VITE_APIURL"                  =" https://webapp-backend-dojo-2026.azurewebsites.net/customer"
+    "VITE_ORDERURL"                = "https://webapp-backend-dojo-2026.azurewebsites.net/orders"
+
   }
 
   identity {
@@ -372,6 +375,8 @@ resource "azurerm_linux_web_app" "backend" {
     "OTEL_METRICS_EXPORTER"       = "otlp"
     "OTEL_TRACES_EXPORTER"        = "otlp"
     "OTEL_SERVICE_NAME"           = "spring-boot-backend"
+    "OTEL_LOGS_EXPORTER"          =  "otlp"
+    "OTEL_EXPORTER_OTLP_PROTOCOL" =  "http/protobuf"
 
     #####################################
     # 🌐 Aplicación Spring Boot
