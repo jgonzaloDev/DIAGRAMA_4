@@ -217,10 +217,6 @@ resource "azurerm_linux_virtual_machine" "docker_vm" {
     version   = "latest"
   }
 
-  custom_data = base64encode(templatefile("${path.module}/cloud-init-docker.yaml", {
-    admin_username = var.vm_admin_username
-  }))
-
   tags = {
     Environment = "Development"
     Purpose     = "Docker-Collector-Elastic"
