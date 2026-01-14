@@ -1,0 +1,26 @@
+
+#!/bin/bash
+set -e
+
+# Detectar si se usa 'docker compose' o 'docker-compose'
+if docker compose version >/dev/null 2>&1; then
+    DC="docker compose"
+elif docker-compose version >/dev/null 2>&1; then
+    DC="docker-compose"
+else
+    echo "❌ No se encontró Docker Compose."
+    exit 1
+fi
+
+cd ~/otel-stack
+
+echo "🛑 Deteniendo Elastic Stack..."
+$DC -f docker-compose-elastic.yaml down
+
+echo "🛑 Deteniendo Otel Collector..."
+$DC -f docker-compose-collector.yaml down
+
+# Eliminar contenedores huérfanos si quedaron
+docker rm -f elasticsearch apm-server kibana otel-collector 2>/dev/null || true
+
+echo "✅ Todo detenido. Ya puedes aplicar tu nueva configuración."

@@ -1,0 +1,40 @@
+#!/bin/bash
+set -e
+
+echo "🚀 Preparando entorno para Elastic + Otel Collector..."
+
+# Actualizar paquetes
+sudo apt update -y
+
+# Instalar Docker si no está
+if ! command -v docker >/dev/null 2>&1; then
+    echo "📦 Instalando Docker..."
+    sudo apt install -y docker.io
+    sudo systemctl enable docker
+    sudo systemctl start docker
+fi
+
+# Instalar Docker Compose si no está
+if ! command -v docker-compose >/dev/null 2>&1; then
+    echo "📦 Instalando Docker Compose..."
+    sudo apt install -y docker-compose
+fi
+
+# Agregar usuario al grupo docker (para no usar sudo)
+sudo usermod -aG docker $USER
+newgrp docker <<EONG
+
+# Crear carpeta de trabajo
+mkdir -p ~/otel-stack
+cd ~/otel-stack
+
+# Crear red externa si no existe
+if ! docker network inspect otel-stack_otel-network >/dev/null 2>&1; then
+    echo "🌐 Creando red externa otel-stack_otel-network..."
+    docker network create otel-stack_otel-network
+else
+    echo "🌐 La red otel-stack_otel-network ya existe."
+fi
+
+echo "✅ Entorno listo. Ahora puedes ejecutar tus docker-compose-elastic.yaml y docker-compose-collector.yaml"
+EONG

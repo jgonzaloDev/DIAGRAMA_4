@@ -1,5 +1,8 @@
 PASOS ANTES DE EJECUTAR LOS DOS DOCKER :
 PRIMERO CREAR LAS CARPETAS:
+----------------------------------
+ELIMINAR GRUPO DE RECURSOS DE AZURE
+az group delete -g DemoDojo --yes --no-wait
 ---------------------------------
 mkdir -p ~/otel-stack
 cd ~/otel-stack
@@ -7,6 +10,7 @@ cd ~/otel-stack
 SEGUNDO PASO INSTALAR DOCKER
 ------------------------------------------------
 sudo apt update && sudo apt install -y docker.io
+sudo apt install docker-compose
 ------------------------------------------------
 Luego habilita y arranca el servicio:
 ------------------------------------------------
@@ -15,7 +19,7 @@ sudo systemctl start docker
 -------------------------------------------------
 PERMISO PARA USAR DOCKER 
 -----------------------------
-sudo usermod -aG docker $USER
+sudo usermod -aG docker $USER    
 -----------------------------
 Luego reinicia tu sesión (cierra y vuelve a entrar al terminal) o ejecuta:
 ----------------------------
@@ -27,3 +31,5 @@ docker ps
 -----------
 LUEGO EJECUTAMOS EL PRIMER YAMEL ::::docker-compose-elastic:::
 LUEGO EJECUTAMOS EL SEGUNDO YAMEL :::docker-compose-collector::
+
+

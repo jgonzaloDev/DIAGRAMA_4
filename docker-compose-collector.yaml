@@ -1,18 +1,6 @@
-#!/bin/bash
-set -e
-
-# Detectar si se usa 'docker compose' o 'docker-compose'
-if docker compose version >/dev/null 2>&1; then
-    DC="docker compose"
-elif docker-compose version >/dev/null 2>&1; then
-    DC="docker-compose"
-else
-    echo "❌ No se encontró Docker Compose. Instálalo con: sudo apt install docker-compose"
-    exit 1
-fi
-
 # Ir a carpeta de trabajo
 mkdir -p ~/otel-stack
+# ingresar a la capeta
 cd ~/otel-stack
 
 # Limpiar contenedor previo
@@ -73,10 +61,12 @@ networks:
     name: otel-stack_otel-network
 EOF
 
-# Levantar Collector
-echo "🚀 Levantando Otel Collector..."
-$DC -f docker-compose-collector.yaml up -d
 
-sleep 20
-docker ps
-echo "✅ Otel Collector levantado. Escucha en puertos 4317 (gRPC) y 4318 (HTTP). Exporta trazas al APM Server y logs a Elasticsearch."
+# Levantar Collector
+docker-compose -f docker-compose-elastic.yaml up -d
+docker-compose -f docker-compose-collector.yaml up -d
+
+
+#ELIMINAR ARCHIVOS YAMEL HUERFANOS O QUE SE QUEDARON PEGADO , EJECUTA ESTE COMANDO  PARA LIMPIAR , LUEGO LEVANTA LOS YAMEL 
+docker-compose -f docker-compose-collector.yaml down --remove-orphans
+
