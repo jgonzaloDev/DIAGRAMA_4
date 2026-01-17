@@ -372,7 +372,7 @@ resource "azurerm_linux_web_app" "backend" {
     "OTEL_TRACES_EXPORTER"        = "otlp"
     "OTEL_SERVICE_NAME"           = "spring-boot-backend"
     "OTEL_LOGS_EXPORTER"          =  "otlp"
-    "OTEL_EXPORTER_OTLP_PROTOCOL" =  "http/protobuf"
+    "OTEL_EXPORTER_OTLP_PROTOCOL" =  "grdp"
 
     #####################################
     # 🌐 Aplicación Spring Boot

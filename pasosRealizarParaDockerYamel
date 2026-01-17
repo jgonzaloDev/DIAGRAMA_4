@@ -4,6 +4,8 @@ PRIMERO CREAR LAS CARPETAS:
 ELIMINAR GRUPO DE RECURSOS DE AZURE
 az group delete -g DemoDojo --yes --no-wait
 ---------------------------------
+# Crear carpeta de trabajo
+---------------------------
 mkdir -p ~/otel-stack
 cd ~/otel-stack
 ---------------------------------
@@ -11,7 +13,11 @@ SEGUNDO PASO INSTALAR DOCKER
 ------------------------------------------------
 sudo apt update && sudo apt install -y docker.io
 sudo apt install docker-compose
+sudo apt install -y docker-compose-plugin
 ------------------------------------------------
+CREAR RED PARA DOCKER -
+docker network create otel-stack_otel-network
+---------------------------------------------------
 Luego habilita y arranca el servicio:
 ------------------------------------------------
 sudo systemctl enable docker
@@ -28,6 +34,10 @@ newgrp docker
 Verifica que ya puedes usar Docker:
 -----------
 docker ps
+-----------
+----------
+PARA LISTAR CUANTOS ARCHIVOS YAML HAY EN MI CARPETA DE TRABAJO Opción recomendada (archivos + conteo)
+find . -maxdepth 1 -type f \( -name "*.yml" -o -name "*.yaml" \)
 -----------
 LUEGO EJECUTAMOS EL PRIMER YAMEL ::::docker-compose-elastic:::
 LUEGO EJECUTAMOS EL SEGUNDO YAMEL :::docker-compose-collector::
