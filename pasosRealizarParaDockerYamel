@@ -42,4 +42,12 @@ find . -maxdepth 1 -type f \( -name "*.yml" -o -name "*.yaml" \)
 LUEGO EJECUTAMOS EL PRIMER YAMEL ::::docker-compose-elastic:::
 LUEGO EJECUTAMOS EL SEGUNDO YAMEL :::docker-compose-collector::
 
+# Levantar Collector
+docker-compose -f docker-compose-elastic.yaml up -d
+docker-compose -f docker-compose-collector.yaml up -d
+
+#ELIMINAR ARCHIVOS YAMEL HUERFANOS O QUE SE QUEDARON PEGADO , EJECUTA ESTE COMANDO  PARA LIMPIAR , LUEGO LEVANTA LOS YAMEL 
+docker-compose -f docker-compose-collector.yaml down --remove-orphans
+
+
 

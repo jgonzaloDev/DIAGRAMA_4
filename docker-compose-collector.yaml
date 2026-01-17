@@ -1,44 +1,3 @@
-# Ir a carpeta de trabajo
-mkdir -p ~/otel-stack
-# ingresar a la capeta
-cd ~/otel-stack
-
-# Limpiar contenedor previo
-$DC -f docker-compose-collector.yaml down || true
-docker rm -f otel-collector 2>/dev/null || true
-
-# Crear archivo de configuración del Collector
-cat > otel-collector-config.yaml << 'EOF'
-receivers:
-  otlp:
-    protocols:
-      grpc:
-        endpoint: 0.0.0.0:4317
-      http:
-        endpoint: 0.0.0.0:4318
-
-processors:
-  batch:
-
-exporters:
-  otlphttp/apm:
-    endpoint: http://apm-server:8200
-  elasticsearch:
-    endpoints: ["http://elasticsearch:9200"]
-
-service:
-  pipelines:
-    traces:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [otlphttp/apm]
-    logs:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [elasticsearch]
-EOF
-
-# Crear docker-compose del Collector (sin depends_on)
 cat > docker-compose-collector.yaml << 'EOF'
 version: '3'
 services:
@@ -60,13 +19,3 @@ networks:
     external: true
     name: otel-stack_otel-network
 EOF
-
-
-# Levantar Collector
-docker-compose -f docker-compose-elastic.yaml up -d
-docker-compose -f docker-compose-collector.yaml up -d
-
-
-#ELIMINAR ARCHIVOS YAMEL HUERFANOS O QUE SE QUEDARON PEGADO , EJECUTA ESTE COMANDO  PARA LIMPIAR , LUEGO LEVANTA LOS YAMEL 
-docker-compose -f docker-compose-collector.yaml down --remove-orphans
-

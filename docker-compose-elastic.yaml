@@ -1,5 +1,3 @@
-# INGRESA CARPETA DONDE SE ENCUENTRA DIGITARA LOS YAMEL PARA EJECUCION
-cd ~/otel-stack
 # Crear docker-compose-elastic.yaml
 cat > docker-compose-elastic.yaml << 'EOF'
 version: '3'
@@ -61,8 +59,3 @@ networks:
     name: otel-stack_otel-network
 
 EOF
-
-# Levantar Elastic Stack
-#------------------------
-docker-compose -f docker-compose-elastic.yaml up -d
-#------------------------
